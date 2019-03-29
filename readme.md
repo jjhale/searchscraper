@@ -8,9 +8,14 @@ start elasticsearch node
 
 # dockerized
 
-## to get for testing
-```
-docker pull docker.elastic.co/elasticsearch/elasticsearch:6.7.0
-```
+Need docker installed
 
+Start ES with:
 
+docker-compose up
+
+stop with
+docker-compose down 
+
+Stop and clear persistent volumnes with
+docker-compose down -v

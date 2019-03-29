@@ -73,6 +73,20 @@ public class DataStoreTest {
     }
 
     @Test
+    public void testListSpacyKeyword()
+    {
+        DataStore ds = new DataStore();
+        List<SearchResult> result = ds.listDocsForKeyword("spacey 12");
+
+        for(SearchResult kw : result) {
+            System.out.println(kw);
+        }
+
+        ds.close();
+        assertTrue( result != null);
+    }
+
+    @Test
     public void testRead()
     {
         String id = "0715f17d-9860-4df3-876d-c7ea77d91bcf";
@@ -88,6 +102,17 @@ public class DataStoreTest {
 
         ds.close();
         assertTrue( result != null);
+    }
+
+    @Test
+    public void testMapping()
+    {
+        DataStore ds = new DataStore();
+         ds.initMappings();
+
+
+        ds.close();
+
     }
 
 

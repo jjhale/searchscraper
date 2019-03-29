@@ -6,11 +6,13 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteResponse;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.*;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -19,6 +21,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.rest.RestStatus;
@@ -48,6 +51,63 @@ public class DataStore {
         client = new RestHighLevelClient(RestClient.builder(
                 new HttpHost("localhost", 9200, "http")));
     }
+
+    public void initMappings() {
+        pushMapping("searchtask",
+                "{\n" +
+                        "\n" +
+                        "        \"properties\" : {\n" +
+                        "\n" +
+                        "            \"taskName\" : { \"type\" : \"string\", \"index\" : \"not_analyzed\" },\n" +
+                        "\n" +
+                        "            \"keywords\" : { \"type\" : \"string\", \"index\" : \"not_analyzed\" },\n" +
+                        "\n" +
+                        "            \"createdAt\" : { \"type\" : \"date\", \"format\": \"epoch_millis||dateOptionalTime\" },\n" +
+                        "\n" +
+                        "            \"active\" : { \"type\" : \"boolean\" }\n" +
+                        "        }\n" +
+                        "\n" +
+                        "    }"
+        );
+
+        pushMapping("searchresult",
+                "{\n" +
+                        "\n" +
+                        "        \"properties\" : {\n" +
+                        "\n" +
+                        "            \"taskName\" : { \"type\" : \"string\", \"index\" : \"not_analyzed\" },\n" +
+                        "\n" +
+                        "            \"content\" : { \"type\" : \"string\", \"index\" : \"analyzed\" },\n" +
+                        "\n" +
+                        "            \"title\" : { \"type\" : \"string\", \"index\" : \"analyzed\" },\n" +
+                        "            \n" +
+                        "            \"keyword\" : { \"type\" : \"string\", \"index\" : \"not_analyzed\" },\n" +
+                        "\n" +
+                        "            \"httpStatusCode\" : { \"type\" : \"integer\" },\n" +
+                        "\n" +
+                        "            \"createdAt\" : { \"type\" : \"date\", \"format\": \"epoch_millis||dateOptionalTime\" }\n" +
+                        "        }\n" +
+                        "    }");
+    }
+
+
+    private void pushMapping(String index, String mappingSourceJson) {
+        PutMappingRequest request = new PutMappingRequest(index).type("doc");
+        request.source(mappingSourceJson, XContentType.JSON);
+        try {
+            AcknowledgedResponse putMappingResponse = client.indices().putMapping(request, RequestOptions.DEFAULT);
+            boolean acknowledged = putMappingResponse.isAcknowledged();
+            if (acknowledged) {
+                System.out.println("Applied mapping for " + index);
+            }
+        } catch(ElasticsearchException e) {
+            e.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public boolean addTask(String name, List<String> keywords) {
         // Use a map to define the json ala

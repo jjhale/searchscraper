@@ -54,11 +54,12 @@ Elasticsearch Schema to help you get started:
 
             "taskName" : { "type" : "string", "index" : "not_analyzed" },
 
-            "keywords" : { "type" : "string", "index" : "not_analyzed" }
+            "keywords" : { "type" : "string", "index" : "not_analyzed" },
 
             "createdAt" : { "type" : "date", "format": "epoch_millis||dateOptionalTime" },
 
             "active" : { "type" : "boolean" }
+        }
 
     }
 
@@ -76,16 +77,18 @@ Elasticsearch Schema to help you get started:
 
         "properties" : {
 
-            "taskName" : { "type" : "string", "index" : "not_analyzed" }
+            "taskName" : { "type" : "string", "index" : "not_analyzed" },
 
             "content" : { "type" : "string", "index" : "analyzed" },
 
             "title" : { "type" : "string", "index" : "analyzed" },
+            
+            "keyword" : { "type" : "string", "index" : "not_analyzed" },
 
             "httpStatusCode" : { "type" : "integer" },
 
             "createdAt" : { "type" : "date", "format": "epoch_millis||dateOptionalTime" }
-
+        }
     }
 
 }
