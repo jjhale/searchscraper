@@ -83,5 +83,22 @@ java -jar target/searchscraper-1.0-SNAPSHOT.jar --read <document ID>
 ```
 
 
+# Known issues:
+
+1) Putting the mapping
+
+I messed up configuring the Mapping for the indicies - so when you try to search for
+keywords which include spaces they don't get hit (cos the whole phrase aint in the inverted index).
+Ran out of time to fix that.
+
+2) Logging 
+Would have liked to have decent logging 
+
+3) Exception handling for ES operations
+
+It is kinda messy.
+
+
+
 
 
