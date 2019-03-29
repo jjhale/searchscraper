@@ -2,9 +2,12 @@ package com.jjhale.searchscraper;
 
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
+import org.jsoup.UnsupportedMimeTypeException;
+
 import org.jsoup.nodes.Document;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -17,12 +20,20 @@ import java.util.Random;
  */
 public class Daemon {
     private DataStore dataStore;
+    private ExecutorService scrapers;
+    private Random rand;
 
     public Daemon(int numScraperThreads) {
         dataStore = new DataStore();
-        Random rand = new Random();
+        rand = new Random();
+        scrapers = Executors.newFixedThreadPool(numScraperThreads);
 
-        ExecutorService scrapers = Executors.newFixedThreadPool(numScraperThreads);
+
+    }
+
+    public void start() {
+        System.out.println("Starting scraper - polling the ES instance for search tasks.");
+        System.out.println("Quit by pressing <Ctrl> + c");
 
         while(true) {
             Map<String, Object> nextTask = dataStore.fetchNextTask();
@@ -46,14 +57,16 @@ public class Daemon {
                 }
 
             }
-            int waitMs = rand.nextInt(5001);
+            int waitMs = 1000+rand.nextInt(4001);
             System.out.println("Waiting for " + waitMs + "ms until checking for new tasks");
             try {
                 Thread.sleep(waitMs);
             } catch (InterruptedException e) {
+                System.out.println("Ending.");
                 break; // exit the while loop
             }
         }
+
         scrapers.shutdownNow();
     }
 
@@ -65,19 +78,40 @@ public class Daemon {
      * @param url
      */
     protected void downloadUrlAndStore(String taskName, String keyword, String url) {
+        String title = "";
+        String body = "";
+        int status = 0;
         try {
+            System.out.println("Downloading " + url + " for keyword " + keyword) ;
             Connection connection = Jsoup.connect(url).ignoreHttpErrors(true);
-            Document doc = connection.get();
-            String title = doc.title();
-            String body = connection.response().body();
+            Connection.Response response = connection.execute();
+            System.out.println("Executed " + url);
+            status = response.statusCode();
+            body = response.body();//connection.response().body();
+            Document doc = Jsoup.parse(body);
+            title = doc.title();
 
-            dataStore.addSearchResult(
-                    taskName, keyword, body, title,
-                    connection.response().statusCode(),
-                    System.currentTimeMillis() );
-        } catch (IOException e) {
+
+
+            System.out.println("Downloaded  " + url);
+        } catch (SocketTimeoutException e) {
+            status = 408; // Time out
+            title = url;
+            body = "Time out when fetching " + url;
+        } catch (UnsupportedMimeTypeException e) {
+            // EG if we try and download a pdf or a dmg etc.
+            status=200; // must have got a response
+            title=url;
+            body="Unsupported MIME type: " + e.getMimeType() + " from " + e.getUrl();
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
+
+        dataStore.addSearchResult(
+                taskName, keyword, body, title,
+                status,
+                System.currentTimeMillis() );
 
     }
 

@@ -21,7 +21,8 @@ public class GoogleSearch {
     }
 
     public List<String> execute() throws IOException {
-        Document doc = Jsoup.connect(this.keyword).get();
+        String searchUrl = buildSearchUrl(this.keyword);
+        Document doc = Jsoup.connect(searchUrl).get();
         String title = doc.title();
         Elements links = doc.select("div.srg > div.g > div > div.rc > div.r > a[href]");
         System.out.println("title is: " + title);

@@ -6,12 +6,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+
+
 /**
  * Hello world!
  *
  */
 public class Cli
 {
+
     public static void main( String[] args )
     {
 
@@ -22,7 +25,7 @@ public class Cli
         OptionGroup optgrp = new OptionGroup();
         optgrp.addOption(Option.builder("l")
                 .longOpt("list")
-                .hasArg().argName("keyword")
+                .hasArg().argName("keyword").optionalArg(true)
                 .type(String.class)
                 .desc("List documents scraped for keyword")
                 .build());
@@ -39,7 +42,6 @@ public class Cli
                 .build());
         optgrp.addOption( Option.builder("s")
                 .longOpt("scraper")
-                .hasArg().argName("doc_id")
                 .type(String.class)
                 .desc("Start the scraper watcher")
                 .build());
@@ -67,40 +69,16 @@ public class Cli
                 .desc("Number of scraper threads to use.")
                 .build());
 
-
-
-
-
-
         //String[] args2 = new String[]{ "--add --search-name=\"some thing\" --keywords=kw1, kw2" };
-        String[] args2 = new String[]{ "--add",  "--search-name", "some thing new", "--keywords", "kw3", "kw4"};
+       // String[] args2 = new String[]{ "--add",  "--search-name", "some thing new", "--keywords", "kw3", "kw4"};
+       // String[] args2 = new String[]{ "--scraper"};
+//        String[] args2 = new String[]{ "--list"};
 
         int exitCode = 0;
-
+        CommandLine line;
         try {
             // parse the command line arguments
-            CommandLine line = parser.parse( options, args2 );
-            if( line.hasOption( "add" ) ) {
-                if(!line.hasOption( "search-name" ) || !line.hasOption("keywords")) {
-                    System.out.println("must have search name and keywords when adding");
-                    System.exit(2);
-                }
-                String name = line.getOptionValue( "search-name" );
-                String[] keywords = line.getOptionValues("keywords");
-                exitCode = add(name, Arrays.asList(keywords));
-            }
-            // validate that block-size has been set
-            else if( line.hasOption( "list" ) ) {
-                // print the value of block-size
-                System.out.println( line.getOptionValue( "list" ) );
-            } else {
-                //  generate the help statement
-                HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp( "searchscraper \n" +
-                        "  [--add --search-name=<SearchTask> --keywords=<keyword1> <keyword2> ...]\n" +
-                        "  [--list [<keyword>] ]\n" +
-                        "  [--read <doc_id>]\n", options , true);
-            }
+            line = parser.parse( options, args );
         }
         catch( ParseException exp ) {
             System.out.println( "Unexpected exception:" + exp.getMessage() );
@@ -109,8 +87,87 @@ public class Cli
                     "  [--add --search-name=<SearchTask> --keywords=<keyword1> <keyword2> ...]\n" +
                     "  [--list [<keyword>] ]\n" +
                     "  [--read <doc_id>]\n", options , true);
-
+            System.exit(2);
+            return;
         }
+
+        if( line.hasOption( "add" ) ) {
+            // Add Search Task mode
+            if(!line.hasOption( "search-name" ) || !line.hasOption("keywords")) {
+                System.out.println("must have search name and keywords when adding");
+                System.exit(2);
+            }
+            String name = line.getOptionValue( "search-name" );
+            String[] keywords = line.getOptionValues("keywords");
+            System.out.println("Got keywords: "  + Arrays.toString(keywords) );
+
+            exitCode = add(name, Arrays.asList(keywords));
+
+        } else if( line.hasOption( "list" ) ) {
+            // List Keyword mode
+            DataStore ds = new DataStore();
+            String keyword = line.getOptionValue( "list" );
+            System.out.println("Listing with keyword = `" + keyword + "`");
+            if(keyword == null) {
+                List<String > keywords  =  ds.listKeywords();
+                for(String kw : keywords) {
+                    System.out.println(kw);
+                }
+                exitCode=0;
+            } else {
+                List<SearchResult > results  =  ds.listDocsForKeyword(keyword);
+                for(SearchResult kw : results) {
+                    System.out.println(kw);
+                }
+            }
+            ds.close();
+
+        } else if( line.hasOption( "read" ) ) {
+            // Show a specific document
+            String docId = line.getOptionValue( "read" );
+            if(docId == null) {
+                System.err.println("read option missing doc_id parameter");
+                exitCode = 2;
+            } else {
+
+                DataStore ds = new DataStore();
+                String result = ds.read(docId);
+
+                if (result == null) {
+                    System.err.println("NOT FOUND");
+                    exitCode = 1;
+                } else {
+                    System.out.println(result);
+                }
+                ds.close();
+            }
+        }
+        else if( line.hasOption( "scraper" ) ) {
+            int numThreads = 1;
+            if(line.hasOption( "scraper-threads")) {
+                String threadString = line.getOptionValue("scraper-threads");
+                try {
+                    numThreads = Integer.parseInt(threadString);
+                } catch (NumberFormatException e) {
+                    System.out.println(
+                            "unable to parse number of threads from `" +
+                                    threadString  + "`");
+                }
+
+            }
+            // Start scraper mode
+            Daemon daemon = new Daemon(numThreads);
+            daemon.start();
+        } else {
+            //  generate the help statement
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp( "searchscraper \n" +
+                    "  [--add --search-name <SearchTask> --keywords <keyword1> <keyword2> ...]\n" +
+                    "  [--list [<keyword>] ]\n" +
+                    "  [--read <doc_id>]\n", options , true);
+            exitCode = 2;
+        }
+
 
         System.exit(exitCode);
     }
