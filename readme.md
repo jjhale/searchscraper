@@ -98,7 +98,9 @@ Would have liked to have decent logging
 
 It is kinda messy.
 
-
+4) DataStore#listDocsForKeyword only grabbing first 10
+  - if a keyword had more than 10 docs associated with it they'd not get seen.
+  - need to switch to using Scrolled search like in DataStore#listKeywords
 
 
 
