@@ -57,7 +57,7 @@ java -jar target/searchscraper-1.0-SNAPSHOT.jar --add --search-name "centralized
 
 Note that you need to either escape spaces or put a phrase in quotes eg 
 ```
-java -jar target/searchscraper-1.0-SNAPSHOT.jar --add --search-name "centralized logging" --keywords "data dog" datum\ dogs
+java -jar target/searchscraper-1.0-SNAPSHOT.jar --add --search-name "centralized logging spacy" --keywords "data dog" datum\ dogs
 ```
 
 ## List keywords
@@ -85,20 +85,14 @@ java -jar target/searchscraper-1.0-SNAPSHOT.jar --read <document ID>
 
 # Known issues:
 
-1) Putting the mapping
-
-I messed up configuring the Mapping for the indicies - so when you try to search for
-keywords which include spaces they don't get hit (cos the whole phrase aint in the inverted index).
-Ran out of time to fix that.
-
-2) Logging 
+1) Logging 
 Would have liked to have decent logging 
 
-3) Exception handling for ES operations
+2) Exception handling for ES operations
 
 It is kinda messy.
 
-4) DataStore#listDocsForKeyword only grabbing first 10
+3) DataStore#listDocsForKeyword only grabbing first 10
   - if a keyword had more than 10 docs associated with it they'd not get seen.
   - need to switch to using Scrolled search like in DataStore#listKeywords
 

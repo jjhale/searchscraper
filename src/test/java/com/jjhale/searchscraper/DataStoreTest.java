@@ -115,5 +115,16 @@ public class DataStoreTest {
 
     }
 
+    @Test
+    public void createMapping()
+    {
+        DataStore ds = new DataStore();
+        ds.createMapping();
+
+
+        ds.close();
+
+    }
+
 
 }

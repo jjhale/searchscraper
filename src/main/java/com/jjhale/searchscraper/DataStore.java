@@ -6,6 +6,9 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteResponse;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
@@ -50,6 +53,86 @@ public class DataStore {
         // default connection
         client = new RestHighLevelClient(RestClient.builder(
                 new HttpHost("localhost", 9200, "http")));
+
+        // Create the mapping if required.
+        createMapping();
+    }
+
+    public void createMapping() {
+        // pull the mapping
+        createIndexIfMissing(SEARCH_TASK, "doc",
+                "{\n" +
+                "  \"doc\":{\n" +
+                "\n" +
+                "        \"properties\" : {\n" +
+                "\n" +
+                "            \"taskName\" : { \"type\" : \"keyword\"},\n" +
+                "\n" +
+                "            \"keywords\" : { \"type\" : \"keyword\"},\n" +
+                "\n" +
+                "            \"createdAt\" : { \"type\" : \"date\", \"format\": \"epoch_millis||dateOptionalTime\" },\n" +
+                "\n" +
+                "            \"active\" : { \"type\" : \"boolean\" }\n" +
+                "        }\n" +
+                "\n" +
+                "    }\n" +
+                "}");
+
+        createIndexIfMissing(SEARCH_RESULT,"doc", "{\n" +
+                "  \"doc\":{\n" +
+                "\n" +
+                "        \"properties\" : {\n" +
+                "\n" +
+                "            \"taskName\" : { \"type\" : \"keyword\" },\n" +
+                "\n" +
+                "            \"content\" : { \"type\" : \"text\" },\n" +
+                "\n" +
+                "            \"title\" : { \"type\" : \"text\"},\n" +
+                "\n" +
+                "            \"keyword\" : { \"type\" : \"keyword\"},\n" +
+                "\n" +
+                "            \"httpStatusCode\" : { \"type\" : \"integer\" },\n" +
+                "\n" +
+                "            \"createdAt\" : { \"type\" : \"date\", \"format\": \"epoch_millis||dateOptionalTime\" }\n" +
+                "        }\n" +
+                "\n" +
+                "    }\n" +
+                "}");
+
+
+
+    }
+
+
+    public void createIndexIfMissing(String index, String type, String mappingJson) {
+        // Check if it exists:
+        GetIndexRequest getIndexRequest= new GetIndexRequest();
+        getIndexRequest.indices(index);
+        try {
+            boolean exists = client.indices().exists(getIndexRequest, RequestOptions.DEFAULT);
+            if(exists) {
+                System.out.println("Index `" + index + "` already exists");
+                return;
+            }
+
+            // pull the mapping
+
+            CreateIndexRequest request = new CreateIndexRequest(index);
+            request.mapping(type, mappingJson, XContentType.JSON);
+
+
+            CreateIndexResponse createIndexResponse = client.indices().create(request, RequestOptions.DEFAULT);
+
+
+            boolean acknowledged = createIndexResponse.isAcknowledged();
+            boolean shardsAcknowledged = createIndexResponse.isShardsAcknowledged();
+            System.out.println("Index create response " + acknowledged + "  Shard Ack: " + shardsAcknowledged);
+        } catch (IOException e ){
+            e.printStackTrace();
+        }
+
+
+
     }
 
     public void initMappings() {
@@ -58,9 +141,9 @@ public class DataStore {
                         "\n" +
                         "        \"properties\" : {\n" +
                         "\n" +
-                        "            \"taskName\" : { \"type\" : \"string\", \"index\" : \"not_analyzed\" },\n" +
+                        "            \"taskName\" : { \"type\" : \"keyword\", \"keyword\" : \"not_analyzed\" },\n" +
                         "\n" +
-                        "            \"keywords\" : { \"type\" : \"string\", \"index\" : \"not_analyzed\" },\n" +
+                        "            \"keywords\" : { \"type\" : \"keyword\", \"keyword\" : \"not_analyzed\" },\n" +
                         "\n" +
                         "            \"createdAt\" : { \"type\" : \"date\", \"format\": \"epoch_millis||dateOptionalTime\" },\n" +
                         "\n" +
@@ -75,13 +158,13 @@ public class DataStore {
                         "\n" +
                         "        \"properties\" : {\n" +
                         "\n" +
-                        "            \"taskName\" : { \"type\" : \"string\", \"index\" : \"not_analyzed\" },\n" +
+                        "            \"taskName\" : { \"type\" : \"keyword\" },\n" +
                         "\n" +
-                        "            \"content\" : { \"type\" : \"string\", \"index\" : \"analyzed\" },\n" +
+                        "            \"content\" : { \"type\" : \"text\" },\n" +
                         "\n" +
-                        "            \"title\" : { \"type\" : \"string\", \"index\" : \"analyzed\" },\n" +
+                        "            \"title\" : { \"type\" : \"text\"},\n" +
                         "            \n" +
-                        "            \"keyword\" : { \"type\" : \"string\", \"index\" : \"not_analyzed\" },\n" +
+                        "            \"keyword\" : { \"type\" : \"keyword\"},\n" +
                         "\n" +
                         "            \"httpStatusCode\" : { \"type\" : \"integer\" },\n" +
                         "\n" +
